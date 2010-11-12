@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
 import fr.alma.hadl.annotations.Component;
 import fr.alma.hadl.annotations.ProvidedInterface;

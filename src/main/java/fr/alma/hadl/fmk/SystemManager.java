@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
 import fr.alma.hadl.annotations.Component;
 import fr.univnantes.alma.hadlm2.composant.Composant;

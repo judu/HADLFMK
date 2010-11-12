@@ -1,4 +1,4 @@
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
 /**
  * Hello world!

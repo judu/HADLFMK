@@ -3,8 +3,9 @@
  * and open the template in the editor.
  */
 
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
+import fr.alma.hadl.fmk.SystemManager;
 import java.io.File;
 import org.junit.After;
 import org.junit.AfterClass;

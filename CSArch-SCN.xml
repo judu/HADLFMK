@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : CSArch.xml
+    Created on : 11 novembre 2010, 18:08
+    Author     : indy
+    Description:
+        Purpose of the document follows.
+-->
+
+<configuration name="CSSystem">
+    <composant name="Client">
+        <port name="query" />
+        <service name="receive" />
+    </composant>
+
+    <configuration name="Server">
+        <composant name="ConnManager">
+        </composant>
+
+        <composant name="ConnManager">
+        </composant>
+    </configuration>
+</configuration>
+

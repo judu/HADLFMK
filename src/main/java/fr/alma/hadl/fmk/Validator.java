@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

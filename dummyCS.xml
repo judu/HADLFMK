@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : newXMLDocument.xml
+    Created on : 11 novembre 2010, 17:29
+    Author     : indy
+    Description:
+        Purpose of the document follows.
+-->
+
+<configuration name="DummySystem">
+    <composant name="Bobi">
+        <port name="dany" />
+        <service name="bobi" />
+    </composant>
+    <composant name="Philip">
+        <service name="philip" />
+    </composant>
+    <port name="pirate" ref="Bobi.dany" />
+    <service name="run" ref="Bobi.bobi" />
+    <connector name="PortConnectorYeAarh" from="Bobi.dany" to="Philip.philip" />
+    <connector name="DummyConnector" from="Bobi.bobi" to="Philip.philip" />
+</configuration>

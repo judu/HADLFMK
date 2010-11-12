@@ -1,4 +1,4 @@
-package fr.alma.hadlfmk;
+package fr.alma.hadl.fmk;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

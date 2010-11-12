@@ -36,11 +36,16 @@
          <groupId>fr.alma</groupId>
          <artifactId>HADL-annotations</artifactId>
          <version>1.0-SNAPSHOT</version>
-         </dependency>
+      </dependency>
       <dependency>
          <groupId>net.sf.scannotation</groupId>
          <artifactId>scannotation</artifactId>
          <version>1.0.2</version>
+      </dependency>
+      <dependency>
+         <groupId>dom4j</groupId>
+         <artifactId>dom4j</artifactId>
+         <version>1.5.2</version>
       </dependency>
    </dependencies>
 </project>

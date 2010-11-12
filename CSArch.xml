@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : CSArch.xml
+    Created on : 11 novembre 2010, 18:08
+    Author     : indy
+    Description:
+        Purpose of the document follows.
+-->
+
+<configuration name="CSSystem">
+    <composant name="Client">
+        <port name="query" />
+        <service name="receive" />
+    </composant>
+
+    <configuration name="Server">
+        <composant name="ConnManager">
+            <service name="parseQuery" />
+            <port name="result" />
+            <port name="query" />
+            <service name="receiveResult" />
+        </composant>
+
+        <composant name="Database">
+            <service name="receiveQuery" />
+            <service name="sendResponse" />
+        </composant>
+
+        <connector name="ConnPSIdent" from="ConnManager.query" to="Database.receiveQuery" />
+        <connector name="ConnSSIdent" from="Database.sendResponse" to="ConnManager.receiveResult" />
+
+        <service name="parseQuery" ref="ConnManager.parseQuery" />
+        <port name="result" ref="ConnManager.result" />
+    </configuration>
+
+    <connector name="ConnPSIdent" from="Client.query" to="Server.parseQuery" />
+    <connector name="ConnSSIdent" from="Server.result" to="Client.receive" />
+</configuration>
+
