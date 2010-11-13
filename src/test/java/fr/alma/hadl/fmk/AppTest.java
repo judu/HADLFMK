@@ -1,5 +1,8 @@
 package fr.alma.hadl.fmk;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -34,5 +37,11 @@ public class AppTest
     public void testApp()
     {
         assertTrue( true );
+    }
+
+    public void testMember() {
+       System.out.println("testMember");
+       assertTrue(Member.class.isAssignableFrom(Field.class));
+       assertTrue(Member.class.isAssignableFrom(Method.class));
     }
 }

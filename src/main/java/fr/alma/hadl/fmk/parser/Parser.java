@@ -176,4 +176,8 @@ public class Parser {
       System.out.println("Loaded system :");
       root.print("");
    }
+
+   public ConfDesc getArchitecture() {
+      return root;
+   }
 }

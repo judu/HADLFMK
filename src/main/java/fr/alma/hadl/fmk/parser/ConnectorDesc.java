@@ -10,9 +10,9 @@ package fr.alma.hadl.fmk.parser;
  * @author judu
  */
 public class ConnectorDesc extends DescElem {
-   public String name;
-   public String to;
-   public String from;
+   private String name;
+   private String to;
+   private String from;
 
    public ConnectorDesc(String name, String from, String to) {
       this.name = name;
@@ -53,6 +53,14 @@ public class ConnectorDesc extends DescElem {
    @Override
    public String name() {
       return name;
+   }
+
+   public String from() {
+      return from;
+   }
+
+   public String to() {
+      return to;
    }
 
    @Override
