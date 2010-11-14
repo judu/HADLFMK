@@ -11,13 +11,17 @@ package fr.alma.hadl.fmk.parser;
  */
 public class ConnectorDesc extends DescElem {
    private String name;
-   private String to;
-   private String from;
+   private String toC;
+   private String toI;
+   private String fromC;
+   private String fromI;
 
    public ConnectorDesc(String name, String from, String to) {
       this.name = name;
-      this.from = from;
-      this.to = to;
+      this.fromC = from.substring(0, from.indexOf("."));
+      this.fromI = from.substring(from.indexOf(".")+ 1);
+      this.toC = to.substring(0, to.indexOf("."));
+      this.toI = to.substring(to.indexOf(".")+ 1);
    }
 
    @Override
@@ -32,10 +36,16 @@ public class ConnectorDesc extends DescElem {
       if ((this.name == null) ? (other.name != null) : !this.name.equals(other.name)) {
          return false;
       }
-      if ((this.to == null) ? (other.to != null) : !this.to.equals(other.to)) {
+      if ((this.toC == null) ? (other.toC != null) : !this.toC.equals(other.toC)) {
          return false;
       }
-      if ((this.from == null) ? (other.from != null) : !this.from.equals(other.from)) {
+      if ((this.toI == null) ? (other.toI != null) : !this.toI.equals(other.toI)) {
+         return false;
+      }
+      if ((this.fromC == null) ? (other.fromC != null) : !this.fromC.equals(other.fromC)) {
+         return false;
+      }
+      if ((this.fromI == null) ? (other.fromI != null) : !this.fromI.equals(other.fromI)) {
          return false;
       }
       return true;
@@ -44,11 +54,15 @@ public class ConnectorDesc extends DescElem {
    @Override
    public int hashCode() {
       int hash = 7;
-      hash = 73 * hash + (this.name != null ? this.name.hashCode() : 0);
-      hash = 73 * hash + (this.to != null ? this.to.hashCode() : 0);
-      hash = 73 * hash + (this.from != null ? this.from.hashCode() : 0);
+      hash = 97 * hash + (this.name != null ? this.name.hashCode() : 0);
+      hash = 97 * hash + (this.toC != null ? this.toC.hashCode() : 0);
+      hash = 97 * hash + (this.toI != null ? this.toI.hashCode() : 0);
+      hash = 97 * hash + (this.fromC != null ? this.fromC.hashCode() : 0);
+      hash = 97 * hash + (this.fromI != null ? this.fromI.hashCode() : 0);
       return hash;
    }
+
+   
 
    @Override
    public String name() {
@@ -56,19 +70,36 @@ public class ConnectorDesc extends DescElem {
    }
 
    public String from() {
-      return from;
+      return fromC + "."+ fromI;
    }
 
    public String to() {
-      return to;
+      return toC + "." + toI;
    }
+
+   public String fromC() {
+      return fromC;
+   }
+
+   public String fromI(){
+      return fromI;
+   }
+
+   public String toC() {
+      return toC;
+   }
+
+   public String toI(){
+      return toI;
+   }
+
 
    @Override
    public String toString() {
-      return "Connector " + name + " {" +"from= " + from +", to= " + to + '}';
+      return "Connector " + name + " {" +"from= " + from() +", to= " + to() + '}';
    }
 
-   public void print(String prefix) {
-      System.out.println(prefix + toString());
+   public String print(String prefix) {
+      return prefix + toString() + "\n";
    }
 }

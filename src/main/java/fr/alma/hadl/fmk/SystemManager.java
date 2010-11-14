@@ -8,18 +8,26 @@ import fr.alma.hadl.annotations.Component;
 import fr.alma.hadl.annotations.Connector;
 import fr.alma.hadl.annotations.ProvidedInterface;
 import fr.alma.hadl.annotations.RequiredInterface;
+import fr.alma.hadl.annotations.RunInterface;
 import fr.alma.hadl.fmk.exceptions.ArchitectureException;
 import fr.alma.hadl.fmk.exceptions.ParseException;
+import fr.alma.hadl.fmk.parser.BindingDesc;
 import fr.alma.hadl.fmk.parser.CompDesc;
 import fr.alma.hadl.fmk.parser.ConfDesc;
 import fr.alma.hadl.fmk.parser.ConnectorDesc;
+import fr.alma.hadl.fmk.parser.EntryPointDesc;
 import fr.alma.hadl.fmk.parser.Parser;
 import fr.univnantes.alma.hadlm2.composant.Composant;
 import fr.univnantes.alma.hadlm2.composant.Configuration;
+import fr.univnantes.alma.hadlm2.composant.SimpleComposant;
 import fr.univnantes.alma.hadlm2.connecteur.Connecteur;
 import fr.univnantes.alma.hadlm2.connecteur.ConnecteurPP;
 import fr.univnantes.alma.hadlm2.connecteur.ConnecteurPS;
+import fr.univnantes.alma.hadlm2.connecteur.ConnecteurSP;
+import fr.univnantes.alma.hadlm2.connecteur.ConnecteurSS;
 import fr.univnantes.alma.hadlm2.exceptions.NoSuchComponentException;
+import fr.univnantes.alma.hadlm2.exceptions.NoSuchInterfaceException;
+import fr.univnantes.alma.hadlm2.exceptions.WrongTypeException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.AccessibleObject;
@@ -28,17 +36,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.scannotation.AnnotationDB;
-import org.scannotation.ClasspathUrlFinder;
 
 /**
  *
@@ -62,43 +65,63 @@ public class SystemManager {
 
    private ConfDesc architecture;
 
+   private ClassLoader loader;
+
    private SystemManager() {
    }
 
-   public void init(String jarPath) throws ParseException, ArchitectureException {
+   public void init(String jarPath) throws IOException, ClassNotFoundException {
       jarBinks = new File(jarPath);
-      loadDesc();
-      loadSystem();
+      try {
+         loadDesc();
+      } catch (ParseException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while parsing the xml file : {0}", ex);
+         System.exit(1);
+      }
+      try {
+         loadSystem();
+      } catch (ArchitectureException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (NoSuchMethodException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (IllegalArgumentException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (InvocationTargetException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (NoSuchComponentException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (NoSuchInterfaceException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      } catch (WrongTypeException ex) {
+         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
+         System.exit(1);
+      }
    }
 
-   public void loadSystem() throws ArchitectureException {
+   public void loadSystem() throws ArchitectureException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException, NoSuchComponentException, NoSuchInterfaceException, WrongTypeException, IOException, ClassNotFoundException {
       annotdb = new AnnotationDB();
       annotdb.setScanClassAnnotations(Boolean.TRUE);
       annotdb.setScanFieldAnnotations(Boolean.TRUE);
       annotdb.setScanMethodAnnotations(Boolean.TRUE);
       annotdb.setScanParameterAnnotations(Boolean.FALSE);
-      try {
-         annotdb.scanArchives(jarBinks.toURI().toURL());
-      } catch (IOException ex) {
-         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      try {
-         system = (Configuration) instanciate(architecture);
-      } catch (ClassNotFoundException ex) {
-         Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, null, ex);
-      }
-
+      annotdb.scanArchives(jarBinks.toURI().toURL());
+      system = (Configuration) instanciate(architecture);
    }
 
    public void loadDesc() throws ParseException {
       URL jarURL;
       try {
          jarURL = new URL("jar", "", "file:" + jarBinks.getAbsolutePath() + "!/");
-         System.out.println(jarURL.toString());
+         Logger.getAnonymousLogger().info(jarURL.toString());
 
-
-         URLClassLoader cl = new URLClassLoader(new URL[]{jarURL});
-         URL archiURL = cl.findResource("META-INF/architecture.xml");
+         loader = new URLClassLoader(new URL[]{jarURL});
+         URL archiURL = loader.getResource("META-INF/architecture.xml");
          Parser parser = new Parser();
          parser.parse(archiURL);
          parser.printLoadedSystem();
@@ -110,93 +133,97 @@ public class SystemManager {
       }
    }
 
-   private Composant instanciate(CompDesc element) throws ClassNotFoundException, ArchitectureException {
-
-      Composant currentComp = null;
+   private Composant instanciate(CompDesc element) throws ClassNotFoundException, ArchitectureException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException, NoSuchComponentException, NoSuchInterfaceException, WrongTypeException {
+      Logger.getAnonymousLogger().log(Level.INFO, ">>> Instanciate : {0}", element.name());
 
       String name = element.name();
       Set<String> classes = annotdb.getAnnotationIndex().get(Component.class.getName());
 
-
-
       for (String clName : classes) {
-         Class compC = ClassLoader.getSystemClassLoader().loadClass(clName);
+         Class compC = loader.loadClass(clName);
          if (Composant.class.isAssignableFrom(compC)) {
             try {
-               Composant comp = (Composant) compC.newInstance();
-               String value = comp.getClass().getAnnotation(Component.class).value();
+               Composant compTest = (Composant) compC.newInstance();
+               String value = compTest.getClass().getAnnotation(Component.class).value();
                if (name.equals(value)) {
-                  checkInterfaces(comp, element); //DONE
+                  checkInterfaces(compTest, element); //DONE
                   // On a trouvé la classe qui va bien ! il faut l'ajouter au système, et passer à la suite.
                   if (element instanceof ConfDesc) {
-                     if (comp instanceof Configuration) {
+                     if (compTest instanceof Configuration) {
                         for (CompDesc cm : ((ConfDesc) element).children) {
-                           ((Configuration) comp).addComposant(instanciate(cm));
+                           Logger.getAnonymousLogger().log(Level.INFO, "Adding component {0} to configuration {1}...", new Object[]{cm.name(), element.name()});
+                           ((Configuration) compTest).addComposant(instanciate(cm));
                         }
-                        addConnectors((Configuration) comp, (ConfDesc) element); //DONE
-                        addBindings((Configuration) comp, (ConfDesc) element); //TODO
+                        addConnectors((Configuration) compTest, (ConfDesc) element); //DONE
+                        addBindings((Configuration) compTest, (ConfDesc) element); //DONE
                      } else {
                         throw new ArchitectureException("The " + element.name() + " node is configuration and refers to a simplecomposant.");
                      }
-                  } else {
+                  } else if (compTest instanceof Configuration) {
                      throw new ArchitectureException("The " + element.name() + " node is simplecomposant and refers to a configuration.");
                   }
+                  return compTest;
                }
             } catch (InstantiationException ex) {
                Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IllegalAccessException ex) {
                Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, null, ex);
             }
+         } else {
+            throw new ArchitectureException("Only Composant class should be annotated with Component annotation.");
          }
-
-
       }
-
-      return currentComp;
+      throw new ArchitectureException("No component found with name " + name);
    }
 
-   private void checkInterfaces(Composant comp, CompDesc element) throws ClassNotFoundException, InstantiationException, IllegalAccessException, ArchitectureException {
+   private void checkInterfaces(Composant comp, CompDesc element) throws InstantiationException, IllegalAccessException, ArchitectureException, NoSuchInterfaceException, ClassNotFoundException {
 
-      // Il faut vérifier chaque port de element. Pour chaque, il faut vérifier qu'on a bien un
-      // Field dans la classe de comp, qui est soit required soit provided.
-
-      Set<String> rIntNames = annotdb.getAnnotationIndex().get(RequiredInterface.class.getName());
-      Set<String> pIntNames = annotdb.getAnnotationIndex().get(ProvidedInterface.class.getName());
+      Logger.getAnonymousLogger().log(Level.INFO, "Checking interfaces for component {0}...", element.name());
 
       for (String pName : element.ports) {
-         // Check in required
-         if (!isOneOf(pName, rIntNames, comp)) {
-            if (!isOneOf(pName, pIntNames, comp)) {
-               throw new ArchitectureException("Cannot find port " + pName);
+         Field f = (Field) comp.getInterfaceForName(pName, Boolean.TRUE);
+         if (f == null) {
+            f = (Field) comp.getInterfaceForName(pName, Boolean.FALSE);
+            if (f == null) {
+               throw new NoSuchInterfaceException("Cannot find port " + pName);
             }
          }
-         // Check in provided
       }
 
-      // Check methods
       for (String sName : element.services) {
-         if (!isOneOf(sName, rIntNames, comp) && !isOneOf(sName, pIntNames, comp)) {
-            throw new ArchitectureException("Cannot find service " + sName);
+         Method m = (Method) comp.getInterfaceForName(sName, Boolean.TRUE);
+         if (m == null) {
+            m = (Method) comp.getInterfaceForName(sName, Boolean.FALSE);
+            if (m == null) {
+               throw new NoSuchInterfaceException("Cannot find service " + element.name() + "." + sName);
+            }
          }
       }
 
    }
 
-   private void addConnectors(Configuration comp, ConfDesc element) throws ClassNotFoundException, ArchitectureException, InstantiationException, IllegalAccessException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException, NoSuchComponentException {
+   private void addConnectors(Configuration conf, ConfDesc element) throws ClassNotFoundException, ArchitectureException, InstantiationException, IllegalAccessException, NoSuchMethodException, IllegalArgumentException, InvocationTargetException, NoSuchComponentException {
 
       for (ConnectorDesc cd : element.connectors) {
-         String name = cd.name();
-         Set<String> index = annotdb.getAnnotationIndex().get(Connector.class.getName());
-         for (String connectorClassName : index) {
-            Class connectorClass = ClassLoader.getSystemClassLoader().loadClass(connectorClassName);
-            Composant fromC = getComposant(comp, cd.from());
-            Composant toC = getComposant(comp, cd.to());
-            AccessibleObject fromInt = getInterface(comp, cd.from(), Boolean.TRUE);
-            AccessibleObject toInt = getInterface(comp, cd.to(), Boolean.FALSE);
+         addConnector(conf, cd);
+      }
+   }
 
+   private void addConnector(Configuration conf, ConnectorDesc cd) throws ClassNotFoundException, ArchitectureException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchComponentException {
+      String name = cd.name();
+      Set<String> index = annotdb.getAnnotationIndex().get(Connector.class.getName());
+      for (String connectorClassName : index) {
+         Class connectorClass = loader.loadClass(connectorClassName);
+         Composant fromC = getComposant(conf, cd.fromC());
+         Composant toC = getComposant(conf, cd.toC());
+         AccessibleObject fromInt = getInterface(conf, cd.fromC(), cd.fromI(), Boolean.TRUE);
+         AccessibleObject toInt = getInterface(conf, cd.toC(), cd.toI(), Boolean.FALSE);
 
-            Connecteur newConn = null;
+         Connecteur newConn = null;
 
+         String connName = ((Connector) connectorClass.getAnnotation(Connector.class)).value();
+
+         if (connName.equals(name)) {
             if (fromInt instanceof Field) {
                if (toInt instanceof Field) {
                   if (ConnecteurPP.class.isAssignableFrom(connectorClass)) {
@@ -213,50 +240,89 @@ public class SystemManager {
                }
             } else {
                if (toInt instanceof Field) {
-                  if (ConnecteurPP.class.isAssignableFrom(connectorClass)) {
+                  if (ConnecteurSP.class.isAssignableFrom(connectorClass)) {
                      newConn = (Connecteur) connectorClass.getConstructor(Composant.class, Method.class, Composant.class, Field.class).newInstance(fromC, (Field) fromInt, toC, (Field) toInt);
                   } else {
                      throw new ArchitectureException(name + " should be a ConnecteurSP");
                   }
                } else {
-                  if (ConnecteurPP.class.isAssignableFrom(connectorClass)) {
+                  if (ConnecteurSS.class.isAssignableFrom(connectorClass)) {
                      newConn = (Connecteur) connectorClass.getConstructor(Composant.class, Method.class, Composant.class, Method.class).newInstance(fromC, fromInt, toC, toInt);
                   } else {
                      throw new ArchitectureException(name + " should be a ConnecteurSS");
                   }
                }
             }
-            comp.addConnecteur(newConn);
+            conf.addConnecteur(newConn);
+            return;
+         }
+      }
+      throw new ArchitectureException("No connecteur class found for " + name);
+   }
 
+   private void addBindings(Configuration conf, ConfDesc element) throws ArchitectureException, NoSuchInterfaceException, NoSuchComponentException, WrongTypeException {
+      for (BindingDesc bd : element.bindings) {
+         Boolean provided = Boolean.TRUE;
+         AccessibleObject from = conf.getInterfaceForName(bd.name(), provided);
+         if (from == null) {
+            provided = Boolean.FALSE;
+            from = conf.getInterfaceForName(bd.name(), provided);
+         }
+         Composant comp = getComposant(conf, bd.cRef());
+         AccessibleObject interf = getInterface(conf, bd.cRef(), bd.iRef(), provided);
+
+         if (from instanceof Field) {
+            if (interf instanceof Field) {
+               conf.addBinding((Field) from, comp, (Field) interf);
+            } else {
+               throw new ArchitectureException("Can't bind port " + bd.name() + "and service " + bd.ref() + ".");
+            }
+         } else if (interf instanceof Method) {
+            conf.addBinding((Method) from, comp, (Method) interf);
+         } else {
+            throw new ArchitectureException("Can't bind service " + bd.name() + "and port " + bd.ref() + ".");
          }
       }
 
-
-      throw new UnsupportedOperationException("Not yet implemented");
+      EntryPointDesc epd = element.entrypoint;
+      if (epd != null) {
+         Method entryPoint = conf.getEntryPoint();
+         if (entryPoint == null || !entryPoint.getAnnotation(RunInterface.class).value().equals(epd.name())) {
+            throw new ArchitectureException("There should be an entry point '"+epd.name()+"' defined in the configuration " + element.name());
+         } else {
+            Method interf = getEntryPoint(conf, epd.cRef(), epd.iRef());
+            conf.addBinding(entryPoint, getComposant(conf, epd.cRef()), interf);
+         }
+      }
    }
 
-   private void checkBindings(Composant comp, CompDesc element) {
-      throw new UnsupportedOperationException("Not yet implemented");
-   }
-
-   private boolean isOneOf(String pName, Set<String> intNames, Composant comp) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-      for (String portName : intNames) {
-         Class intC = ClassLoader.getSystemClassLoader().loadClass(portName);
+   /**
+    * Vérifie qu'une interface est bien présente dans les interfaces d'un composant.
+    * @param name nom de l'interface dans le xml et l'annotation
+    * @param intNames noms des classes annotées
+    * @param comp composant censé contenir l'interface
+    * @return
+    * @throws ClassNotFoundException
+    * @throws InstantiationException
+    * @throws IllegalAccessException
+    */
+   private boolean isOneOf(String name, Set<String> intNames, Composant comp) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+      for (String intName : intNames) {
+         Class intC = loader.loadClass(intName);
          if (AccessibleObject.class.isAssignableFrom(intC) && Member.class.isAssignableFrom(intC)) {
-            // It's a port.
-            AccessibleObject rport = (AccessibleObject) intC.newInstance();
+            AccessibleObject member = (AccessibleObject) intC.newInstance();
 
             // Faut check qu'il est bien de la bonne classe
-            if (((Member) rport).getDeclaringClass().equals(comp.getClass())) {
+            if (((Member) member).getDeclaringClass().equals(comp.getClass())) {
                // Faut check que l'annotation a bien pName comme value.
-               RequiredInterface annotation = rport.getAnnotation(RequiredInterface.class);
+               RequiredInterface annotation = member.getAnnotation(RequiredInterface.class);
                if (annotation == null) {
-                  ProvidedInterface annotation1 = rport.getAnnotation(ProvidedInterface.class);
-                  if (annotation1.value().equals(pName)) {
+                  ProvidedInterface annotation1 = member.getAnnotation(ProvidedInterface.class);
+                  if (annotation1.value().equals(name)) {
                      return true;
                   }
                } else {
-                  if (annotation.value().equals(pName)) {
+                  if (annotation.value().equals(name)) {
                      return true;
                   }
                }
@@ -268,54 +334,46 @@ public class SystemManager {
       return false;
    }
 
-   private AccessibleObject getInterface(Configuration conf, String intName, Boolean from) throws ArchitectureException {
-      String cName = intName.substring(0, intName.indexOf("."));
-      String iName = intName.substring(intName.indexOf(".") + 1);
+   private AccessibleObject getInterface(Configuration conf, String cName, String iName, Boolean from) throws ArchitectureException {
 
-      Composant cmp = getComposant(conf, intName);
-      for (int i = 0; i < cmp.getClass().getFields().length; ++i) {
-         String fieldName = null;
-         if (from) {
-            fieldName = cmp.getClass().getFields()[i].getAnnotation(ProvidedInterface.class).value();
-            if (!Validator.checkProvided(cmp.getClass().getFields()[i])) {
-               throw new ArchitectureException("The Field " + cmp.getClass().getFields()[i].getName() + " should be public.");
-            }
-
-         } else {
-            fieldName = cmp.getClass().getFields()[i].getAnnotation(RequiredInterface.class).value();
-            if (!Validator.checkRequired(cmp.getClass().getFields()[i])) {
-               throw new ArchitectureException("The Field " + cmp.getClass().getFields()[i].getName() + " should be public.");
-            }
-         }
-
-         if (fieldName.equals(iName)) {
-            return cmp.getClass().getFields()[i];
-         }
+      Composant cmp = getComposant(conf, cName);
+      AccessibleObject ao = cmp.getInterfaceForName(iName, from);
+      if (ao == null) {
+         throw new ArchitectureException(
+                 "No field or method for interface " + cName + "." + iName);
       }
-
-      for (int i = 0; i < cmp.getClass().getMethods().length; ++i) {
-         String methName = null;
-         if (from) {
-            methName = cmp.getClass().getMethods()[i].getAnnotation(ProvidedInterface.class).value();
-            if (!Validator.checkProvided(cmp.getClass().getMethods()[i])) {
-               throw new ArchitectureException("The Method " + cmp.getClass().getMethods()[i].getName() + " should be public.");
+      if (from) {
+         if (ao instanceof Field) {
+            if (Validator.checkProvided((Field) ao)) {
+               return ao;
+            } else {
+               throw new ArchitectureException("The Field " + ((Field) ao).getName() + " should be public.");
             }
          } else {
-            methName = cmp.getClass().getMethods()[i].getAnnotation(RequiredInterface.class).value();
-            if (!Validator.checkRequired(cmp.getClass().getMethods()[i])) {
-               throw new ArchitectureException("The Method " + cmp.getClass().getMethods()[i].getName() + " should be public.");
+            if (Validator.checkProvided((Method) ao)) {
+               return ao;
+            } else {
+               throw new ArchitectureException("The Method " + ((Method) ao).getName() + " should be public.");
             }
          }
-         if (methName.equals(iName)) {
-            return cmp.getClass().getMethods()[i];
+      } else {
+         if (ao instanceof Field) {
+            if (Validator.checkRequired((Field) ao)) {
+               return ao;
+            } else {
+               throw new ArchitectureException("The Field " + ((Field) ao).getName() + " should be public.");
+            }
+         } else {
+            if (Validator.checkRequired((Method) ao)) {
+               return ao;
+            } else {
+               throw new ArchitectureException("The Method " + ((Method) ao).getName() + " should be public.");
+            }
          }
       }
-      throw new ArchitectureException(
-              "No field or method for interface " + intName);
    }
 
-   private Composant getComposant(Configuration conf, String intName) throws ArchitectureException {
-      String cName = intName.substring(0, intName.indexOf("."));
+   private Composant getComposant(Configuration conf, String cName) throws ArchitectureException {
 
       for (Composant cmp : conf.getComposants()) {
          if (cmp.getClass().getAnnotation(Component.class).value().equals(cName)) {
@@ -323,5 +381,15 @@ public class SystemManager {
          }
       }
       throw new ArchitectureException("No component found for name " + cName);
+   }
+
+   private Method getEntryPoint(Configuration conf, String cRef, String iRef) throws ArchitectureException {
+      Composant cmp = getComposant(conf, cRef);
+      Method ep = cmp.getEntryPoint();
+      if(ep == null || !Validator.checkEntryPoint(ep)) {
+         throw new ArchitectureException("The composant " + cRef + " should have entry point " + iRef + ".");
+      } else {
+         return ep;
+      }
    }
 }

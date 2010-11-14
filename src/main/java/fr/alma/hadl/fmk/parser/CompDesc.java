@@ -30,11 +30,14 @@ public abstract class CompDesc {
       return name;
    }
 
-   public void print(String prefix) {
+   public String print(String prefix) {
       if(prefix == null) prefix = "";
-      System.out.println(prefix + "Component  " + name + " {");
-      System.out.println(prefix + " ports : " + ports);
-      System.out.println(prefix + " services : " + services);
+      StringBuilder strb = new StringBuilder();
+      strb.append(prefix).append("Component ").append(name).append(" {").append('\n');
+      strb.append(prefix).append("\tports : ").append(ports).append('\n');
+      strb.append(prefix).append("\tservices : ").append(services).append('\n');
+      return strb.toString();
+      
    }
 
    @Override

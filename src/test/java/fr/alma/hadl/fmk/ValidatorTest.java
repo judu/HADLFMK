@@ -4,11 +4,7 @@
  */
 package fr.alma.hadl.fmk;
 
-import fr.alma.hadl.fmk.TestAnnot;
-import fr.alma.hadl.fmk.Validator;
 import java.lang.reflect.Method;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;

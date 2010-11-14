@@ -5,8 +5,6 @@
 
 package fr.alma.hadl.fmk.parser;
 
-import sun.net.idn.StringPrep;
-
 /**
  *
  * @author judu
@@ -18,8 +16,8 @@ public class SimpleDesc extends CompDesc {
    }
 
    @Override
-   public void print(String prefix) {
-      super.print(prefix);
-      System.out.println(prefix + "}");
+   public String print(String prefix) {
+      StringBuilder sb = new StringBuilder(super.print(prefix));
+      return sb.append(prefix).append("}").toString();
    }
 }

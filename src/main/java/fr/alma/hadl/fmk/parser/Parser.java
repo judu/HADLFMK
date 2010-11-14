@@ -6,9 +6,7 @@ package fr.alma.hadl.fmk.parser;
 
 import fr.alma.hadl.fmk.exceptions.ParseException;
 import java.net.URL;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.dom4j.Document;
@@ -32,6 +30,8 @@ public class Parser {
 
    private final static String CONNECTOR = "connector";
 
+   private final static String ENTRYPOINT = "entrypoint";
+
    private final static String FROM = "from";
 
    private final static String TO = "to";
@@ -53,7 +53,6 @@ public class Parser {
    private Document document;
 
    private ConfDesc root;
-
 
    public Parser() {
    }
@@ -109,6 +108,11 @@ public class Parser {
             addPort(currentComp, name, elem.valueOf(REF_ATTR));
          } else if (SERV.equals(eName)) {
             addService(currentComp, name, elem.valueOf(REF_ATTR));
+         } else if (ENTRYPOINT.equals(eName)) {
+            if(currentComp instanceof SimpleDesc) {
+               throw new ParseException("SimpleComposant should not have entrypoint");
+            }
+            addEntryPoint((ConfDesc) currentComp, name, elem.valueOf(REF_ATTR));
          }
       }
       return currentComp;
@@ -125,7 +129,7 @@ public class Parser {
          String toInterface = ref.substring(ref.indexOf(".") + 1);
          CompDesc tgtCmp = ((ConfDesc) currComp).getChild(toComp);
          if (tgtCmp != null && tgtCmp.ports.contains(toInterface)) {
-            ((ConfDesc) currComp).bindings.add(new BindingDesc(name, ref));
+            ((ConfDesc) currComp).bindings.add(new BindingDesc(name, toComp, toInterface));
          } else {
             throw new ParseException("The binding does not bind to an existing Component's port");
          }
@@ -142,9 +146,9 @@ public class Parser {
          String toInterface = ref.substring(ref.indexOf(".") + 1);
          CompDesc tgtCmp = ((ConfDesc) currComp).getChild(toComp);
          if (tgtCmp != null && tgtCmp.services.contains(toInterface)) {
-            ((ConfDesc) currComp).bindings.add(new BindingDesc(name, ref));
+            ((ConfDesc) currComp).bindings.add(new BindingDesc(name, toComp, toInterface));
          } else {
-            throw new ParseException("The binding '" + new BindingDesc(name, ref).toString() + "' does not bind to an existing Component's service");
+            throw new ParseException("The binding '" + new BindingDesc(name, toComp, toInterface).toString() + "' does not bind to an existing Component's service");
          }
       }
    }
@@ -160,6 +164,7 @@ public class Parser {
       assertExists(((ConfDesc) currentComp), to);
       assertExists(((ConfDesc) currentComp), from);
 
+
       ((ConfDesc) currentComp).connectors.add(new ConnectorDesc(cname, from, to));
    }
 
@@ -167,17 +172,37 @@ public class Parser {
       String toComp = role.substring(0, role.indexOf("."));
       String toInterface = role.substring(role.indexOf(".") + 1);
       CompDesc tgtCmp = currComp.getChild(toComp);
-      if(tgtCmp == null || (!tgtCmp.ports.contains(toInterface) && !tgtCmp.services.contains(toInterface))) {
+      if (tgtCmp == null || (!tgtCmp.ports.contains(toInterface) && !tgtCmp.services.contains(toInterface))) {
          throw new ParseException("The interface " + role + " does not exist.");
       }
    }
 
    public void printLoadedSystem() {
-      System.out.println("Loaded system :");
-      root.print("");
+      Logger.getAnonymousLogger().log(Level.INFO, "Loaded system :\n{0}", root.print(""));
    }
 
    public ConfDesc getArchitecture() {
       return root;
+   }
+
+   private void addEntryPoint(ConfDesc currentComp, String name, String ref) throws ParseException {
+      if (currentComp.services.contains(name)) {
+         throw new ParseException("There already is an interface with the name : " + name);
+      }
+      if (ref != null) {
+         // we split 'ref' to get the component name and the interface name
+         String toComp = ref.substring(0, ref.indexOf("."));
+         String toInterface = ref.substring(ref.indexOf(".") + 1);
+         CompDesc tgtCmp = ((ConfDesc) currentComp).getChild(toComp);
+         if (tgtCmp != null && tgtCmp.services.contains(toInterface)) {
+            tgtCmp.services.remove(toInterface);
+            currentComp.entrypoint = new EntryPointDesc(name, toComp, toInterface);
+         } else {
+            throw new ParseException("The entryPoint '" + new EntryPointDesc(name, toComp, toInterface).toString() + "' does not bind to an existing Component's service");
+         }
+      } else {
+         throw new ParseException("The entryPoint should point on something.");
+      }
+
    }
 }
