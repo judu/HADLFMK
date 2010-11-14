@@ -19,7 +19,6 @@ import fr.alma.hadl.fmk.parser.EntryPointDesc;
 import fr.alma.hadl.fmk.parser.Parser;
 import fr.univnantes.alma.hadlm2.composant.Composant;
 import fr.univnantes.alma.hadlm2.composant.Configuration;
-import fr.univnantes.alma.hadlm2.composant.SimpleComposant;
 import fr.univnantes.alma.hadlm2.connecteur.Connecteur;
 import fr.univnantes.alma.hadlm2.connecteur.ConnecteurPP;
 import fr.univnantes.alma.hadlm2.connecteur.ConnecteurPS;
@@ -80,6 +79,7 @@ public class SystemManager {
       }
       try {
          loadSystem();
+         Logger.getAnonymousLogger().info("System loaded.");
       } catch (ArchitectureException ex) {
          Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
          System.exit(1);
@@ -101,6 +101,14 @@ public class SystemManager {
       } catch (WrongTypeException ex) {
          Logger.getLogger(SystemManager.class.getName()).log(Level.SEVERE, "Error while loading the system : {0}", ex);
          System.exit(1);
+      }
+   }
+
+   public void run() {
+      Method entryPoint = system.getEntryPoint();
+      if(entryPoint != null) {
+         Logger.getAnonymousLogger().log(Level.INFO, "EntryPoint : {0}", entryPoint.getName());
+         system.call(entryPoint.getName());
       }
    }
 
